@@ -1,0 +1,13 @@
+{
+  "name": "marketflow",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.11.2",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "scripts": {
+    "check:structure": "node scripts/check-structure.mjs",
+    "test": "pnpm check:structure"
+  }
+}

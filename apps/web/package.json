@@ -1,0 +1,9 @@
+{
+  "name": "@marketflow/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node -e \"console.log('Next.js llega en el Paso 12')\""
+  }
+}
