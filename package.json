@@ -8,6 +8,8 @@
   },
   "scripts": {
     "check:structure": "node scripts/check-structure.mjs",
+    "db:migrate": "pnpm --filter @marketflow/db db:migrate",
+    "db:ping": "pnpm --filter @marketflow/db db:ping",
     "test": "pnpm check:structure"
   }
 }

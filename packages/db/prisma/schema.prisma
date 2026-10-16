@@ -1,0 +1,136 @@
+// Plano de la base: qué tablas existen.
+// Prisma lee esto y genera el cliente + las migraciones SQL.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CUSTOMER
+  SELLER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum SellerStatus {
+  PENDING
+  APPROVED
+  SUSPENDED
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum ProductSource {
+  MANUAL
+  DUMMYJSON
+  FAKESTORE
+  OPENFOODFACTS
+}
+
+model User {
+  id           String     @id @default(uuid()) @db.Uuid
+  email        String     @unique
+  passwordHash String
+  displayName  String
+  status       UserStatus @default(ACTIVE)
+  deletedAt    DateTime?  @db.Timestamptz(3)
+  createdAt    DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime   @updatedAt @db.Timestamptz(3)
+
+  roles                 UserRole[]
+  sellerProfile         SellerProfile?
+  refreshTokenSessions  RefreshTokenSession[]
+
+  @@map("users")
+}
+
+model RefreshTokenSession {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  familyId  String    @db.Uuid
+  tokenHash String    @unique
+  expiresAt DateTime  @db.Timestamptz(3)
+  usedAt    DateTime? @db.Timestamptz(3)
+  revokedAt DateTime? @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId, revokedAt])
+  @@index([familyId])
+  @@map("refresh_token_sessions")
+}
+
+model UserRole {
+  userId String @db.Uuid
+  role   Role
+  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@id([userId, role])
+  @@map("user_roles")
+}
+
+model SellerProfile {
+  id        String       @id @default(uuid()) @db.Uuid
+  userId    String       @unique @db.Uuid
+  storeName String
+  storeSlug String       @unique
+  status    SellerStatus @default(APPROVED)
+  createdAt DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime     @updatedAt @db.Timestamptz(3)
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  products Product[]
+
+  @@map("seller_profiles")
+}
+
+model Category {
+  id       String  @id @default(uuid()) @db.Uuid
+  parentId String? @db.Uuid
+  name     String
+  slug     String  @unique
+
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children Category[] @relation("CategoryTree")
+  products Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id          String        @id @default(uuid()) @db.Uuid
+  sellerId    String        @db.Uuid
+  categoryId  String        @db.Uuid
+  title       String
+  slug        String        @unique
+  priceCents  Int
+  currency    String        @default("EUR") @db.Char(3)
+  imageUrls   String[]
+  status      ProductStatus @default(DRAFT)
+  source      ProductSource @default(MANUAL)
+  externalId  String?
+  deletedAt   DateTime?     @db.Timestamptz(3)
+  createdAt   DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime      @updatedAt @db.Timestamptz(3)
+
+  seller   SellerProfile @relation(fields: [sellerId], references: [id], onDelete: Restrict)
+  category Category      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@unique([source, externalId])
+  @@index([categoryId, status, createdAt])
+  @@map("products")
+}
